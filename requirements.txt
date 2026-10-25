@@ -1,0 +1,7 @@
+zipagent
+openai
+pydantic
+python-dotenv
+jieba
+rank_bm25
+numpy
