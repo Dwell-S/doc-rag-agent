@@ -5,3 +5,4 @@ python-dotenv
 jieba
 rank_bm25
 numpy
+streamlit

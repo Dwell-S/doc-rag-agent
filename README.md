@@ -92,6 +92,14 @@ python -m rag_agent.cli
 ✅ 回答：DeepSeek 的输入价格为每百万 token 约 1 元人民币...
 ```
 
+### 6. Web 界面（可视化操作）
+
+```bash
+streamlit run app.py
+```
+
+浏览器打开 http://localhost:8501，可上传文档、实时查看 Agent 的「思考 → 工具调用 → 检索片段 → 回答」全过程。
+
 ## 🧪 测试
 
 ```bash
