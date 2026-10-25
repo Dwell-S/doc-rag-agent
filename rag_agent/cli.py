@@ -7,6 +7,7 @@
 """
 
 import os
+import sys
 
 from dotenv import load_dotenv
 from zipagent import Runner
@@ -18,6 +19,20 @@ load_dotenv()
 
 
 def main() -> None:
+    # Windows 控制台默认 GBK 编码，重配为 UTF-8 以正确打印 emoji
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+    # 检查 API Key 是否已配置，避免直接抛 traceback
+    if not os.getenv("API_KEY"):
+        print("❌ 未检测到 API_KEY。")
+        print("请先复制 .env.example 为 .env，并在其中填入你的 DeepSeek API Key：")
+        print("   copy .env.example .env")
+        print("   # 编辑 .env，设置 API_KEY=sk-你的key")
+        return
+
     kb = KnowledgeBase()
 
     # 自动加载 data/ 目录下的文档
