@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 htmlcov/
 .coverage
+
+# 用户本地文档：仅 sample.md 作为示例提交，其余不提交到公开仓库
+data/*
+!data/sample.md
