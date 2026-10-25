@@ -64,7 +64,15 @@ cp .env.example .env
 
 把 `.md` / `.txt` 文件丢进 `data/` 目录（已内置一篇示例）。
 
-### 4. 运行
+### 4. 无 Key 快速体验检索（可选）
+
+还没配 key 时，可以先直观看到「切分 → 检索」效果：
+
+```bash
+python -m rag_agent.demo
+```
+
+### 5. 运行（需要 key）
 
 ```bash
 python -m rag_agent.cli
