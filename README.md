@@ -10,6 +10,7 @@
 - 🌊 **流式输出**：实时展示 Agent 的思考与工具调用过程
 - 🇨🇳 **中文友好**：jieba 分词，中文文档效果好
 - ⚡ **零外部检索依赖**：BM25 纯本地运行，无需 embedding 服务
+- 🔌 **MCP Server**：知识库能力以标准 MCP 协议暴露，Cursor / Claude Desktop 等任意 MCP Host 可直接接入
 
 ## 🏗️ 架构
 
@@ -106,6 +107,52 @@ streamlit run app.py
 python -m pytest
 ```
 
+## 🔌 MCP 集成（把知识库能力暴露给任意 MCP Host）
+
+MCP（Model Context Protocol）是「AI 应用 ↔ 外部工具」的标准化接入协议。本项目额外提供一个 **MCP Server**，把知识库的检索能力通过标准协议暴露出去 —— 这样 **Cursor、Claude Desktop 等任何支持 MCP 的客户端都能直接调用本项目的知识库**，不必为每个 host 单独写适配代码。
+
+### 协议实现（JSON-RPC 2.0 over stdio）
+
+只用 Python 标准库实现，不依赖官方 SDK，协议三个环节完整：
+
+| 环节 | 方法 | 作用 |
+|---|---|---|
+| 握手 | `initialize` | 协商协议版本、声明 `tools` 能力、返回服务端信息 |
+| 发现 | `tools/list` | 声明 3 个工具及其 JSON Schema（参数名/类型/必填） |
+| 调用 | `tools/call` | 执行 `search_documents` / `load_documents` / `list_documents` |
+
+传输层用 stdio：每条消息一行 JSON（UTF-8），`notifications/initialized` 这类通知按协议不返回响应。
+
+### 运行
+
+```bash
+# 1) 启动 MCP Server（stdio，等待 host 连接；stdout 只走协议，日志走 stderr）
+python -m rag_agent.mcp_server
+
+# 2) 用最小客户端跑通完整握手，直接看到 initialize / tools/list / tools/call
+python -m rag_agent.mcp_demo_client "RAG 为什么要 overlap"
+```
+
+### 接入 Cursor / Claude Desktop
+
+在 MCP 客户端配置里加一项（以 Cursor 的 `.cursor/mcp.json` 为例）：
+
+```json
+{
+  "mcpServers": {
+    "doc-rag-agent": {
+      "command": "python",
+      "args": ["-m", "rag_agent.mcp_server"],
+      "cwd": "<本项目绝对路径>"
+    }
+  }
+}
+```
+
+配置后客户端会自动完成 `initialize` + `tools/list`，把 3 个工具挂到模型上；模型需要查文档时会自动发起 `tools/call`。
+
+> **与框架的关系**：ZipAgent 框架本身提供 MCP **客户端**能力（`zipagent.MCPTool.connect()`，需 `pip install mcp`），可把外部 MCP Server 的工具导入进 Agent；本项目实现的是 **Server 侧**，两者正好互补 —— 既能当 host 消费别人的工具，也能把自己的知识库作为工具提供给别人。
+
 ## 🛠️ 技术栈
 
 | 层 | 技术 |
@@ -114,6 +161,7 @@ python -m pytest
 | LLM | DeepSeek `deepseek-chat`（OpenAI 兼容） |
 | 检索 | BM25（jieba + rank_bm25） |
 | 切分 | 段落切分 + 滑动窗口（overlap） |
+| 协议 | MCP（Model Context Protocol，JSON-RPC 2.0 over stdio，标准库实现） |
 | 语言 | Python 3.10+ |
 
 ## 📂 项目结构
@@ -121,13 +169,15 @@ python -m pytest
 ```
 doc-rag-agent/
 ├── rag_agent/
-│   ├── chunking.py    # 文档切分
-│   ├── retriever.py   # BM25 检索
-│   ├── tools.py       # function calling 工具封装
-│   ├── agent.py       # 组装 RAG Agent
-│   └── cli.py         # 交互式入口
-├── data/              # 你的知识库文档
-├── tests/             # 单元测试
+│   ├── chunking.py        # 文档切分
+│   ├── retriever.py       # BM25 检索
+│   ├── tools.py           # function calling 工具封装
+│   ├── agent.py           # 组装 RAG Agent
+│   ├── cli.py             # 交互式入口
+│   ├── mcp_server.py      # MCP Server（JSON-RPC 2.0 over stdio，标准库实现）
+│   └── mcp_demo_client.py # 最小 MCP 客户端（验证握手 + 工具调用）
+├── data/                  # 你的知识库文档
+├── tests/                 # 单元 / 集成测试
 └── README.md
 ```
 

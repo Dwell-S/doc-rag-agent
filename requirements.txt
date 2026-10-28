@@ -6,3 +6,7 @@ jieba
 rank_bm25
 numpy
 streamlit
+
+# 可选：启用 ZipAgent 的 MCP 客户端能力（把外部 MCP Server 的工具导入 Agent）
+# 本项目自带的 MCP Server 只用标准库实现，无需此依赖
+# mcp
